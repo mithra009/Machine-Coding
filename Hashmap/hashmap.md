@@ -39,11 +39,23 @@ HashMap = [Array of Buckets/Slots]
 Each Bucket can contain a Linked List of Key-Value pairs
 ```
 
-**Example:**
+**Example (Python):**
+```python
+# Create a HashMap
+my_map = HashMap()
+
+# Store key-value pair
+my_map.put("apple", 5)
+
+# Retrieve value
+value = my_map.get("apple")  # Returns: 5
 ```
-HashMap<String, Integer> map = new HashMap<>();
-map.put("apple", 5);      // Store key-value pair
-int value = map.get("apple");  // Retrieve value: 5
+
+**Built-in Python dict:**
+```python
+my_map = {}
+my_map["apple"] = 5      # Store
+value = my_map["apple"]  # Retrieve: 5
 ```
 
 ---
@@ -307,7 +319,7 @@ Time Complexity
       |________________ Load Factor →
 ```
 
-### Optimal Load Factor:
+### Load Factor Threshold
 
 - **Java HashMap**: Uses α ≤ 0.75 (triggers rehash at 75% capacity)
 - **Python dict**: Uses α ≤ 0.67 (triggers rehash at 2/3 capacity)
@@ -461,192 +473,318 @@ Total rehashes: 10 + 20 + 40 + 80 + ... ≈ 2 × 1000 = O(n)
 4. **Resizing Logic** → Rehash when load factor exceeded
 5. **Entry Storage** → Store key-value pairs
 
-### Implementation Overview:
+### Implementation Overview (Python):
 
-```
-class HashMap<K, V> {
+```python
+class Entry:
+    """Node for linked list in separate chaining"""
+    def __init__(self, key, value, next_node=None):
+        self.key = key
+        self.value = value
+        self.next = next_node
+
+
+class HashMap:
+    """
+    Custom HashMap implementation using separate chaining
+    for collision resolution
+    """
     
-    // Internal structure
-    private Entry<K, V>[] table;      // Array of buckets
-    private int capacity;              // Current capacity
-    private int size;                  // Number of entries
-    private double loadFactor;         // Load factor threshold (0.75)
+    def __init__(self, capacity=10):
+        """
+        Initialize HashMap
+        Args:
+            capacity: Initial capacity of the hash table (default: 10)
+        """
+        self.capacity = capacity
+        self.table = [None] * capacity  # Array of buckets (linked lists)
+        self.size = 0                    # Number of entries
+        self.load_factor_threshold = 0.75
     
-    // Constructor
-    HashMap(int initialCapacity) {
-        this.capacity = initialCapacity;
-        this.table = new Entry[capacity];
-        this.size = 0;
-        this.loadFactor = 0.75;
-    }
+    def _hash(self, key):
+        """
+        Hash function: convert key to array index
+        Args:
+            key: Key to hash
+        Returns:
+            Index in range [0, capacity)
+        """
+        if key is None:
+            return 0
+        return abs(hash(key)) % self.capacity
     
-    // Put operation
-    V put(K key, V value) {
-        // Check if rehash needed
-        if (size / capacity >= loadFactor) {
-            rehash();
-        }
+    def put(self, key, value):
+        """
+        Insert or update a key-value pair
+        Args:
+            key: Key to insert
+            value: Value associated with key
+        """
+        # Check if rehashing needed
+        if self.size / self.capacity >= self.load_factor_threshold:
+            self._rehash()
         
-        // Compute index
-        int index = hash(key);
+        # Compute index
+        index = self._hash(key)
         
-        // Handle collision with linked list
-        Entry<K, V> entry = table[index];
-        while (entry != null) {
-            if (entry.key.equals(key)) {
-                entry.value = value;  // Update existing
-                return;
-            }
-            entry = entry.next;
-        }
+        # Traverse linked list at this index
+        entry = self.table[index]
+        while entry is not None:
+            if entry.key == key:
+                # Update existing key
+                entry.value = value
+                return
+            entry = entry.next
         
-        // Insert new entry at head
-        Entry<K, V> newEntry = new Entry<>(key, value, table[index]);
-        table[index] = newEntry;
-        size++;
-    }
+        # Insert new entry at head of linked list
+        new_entry = Entry(key, value, self.table[index])
+        self.table[index] = new_entry
+        self.size += 1
     
-    // Get operation
-    V get(K key) {
-        int index = hash(key);
-        Entry<K, V> entry = table[index];
+    def get(self, key):
+        """
+        Retrieve value for a key
+        Args:
+            key: Key to search for
+        Returns:
+            Value if found, None otherwise
+        """
+        index = self._hash(key)
         
-        while (entry != null) {
-            if (entry.key.equals(key)) {
-                return entry.value;
-            }
-            entry = entry.next;
-        }
-        return null;  // Not found
-    }
-    
-    // Remove operation
-    V remove(K key) {
-        int index = hash(key);
-        Entry<K, V> entry = table[index];
-        Entry<K, V> prev = null;
+        # Traverse linked list at this index
+        entry = self.table[index]
+        while entry is not None:
+            if entry.key == key:
+                return entry.value
+            entry = entry.next
         
-        while (entry != null) {
-            if (entry.key.equals(key)) {
-                if (prev == null) {
-                    table[index] = entry.next;
-                } else {
-                    prev.next = entry.next;
-                }
-                size--;
-                return entry.value;
-            }
-            prev = entry;
-            entry = entry.next;
-        }
-        return null;  // Not found
-    }
+        return None  # Key not found
     
-    // Hash function
-    private int hash(K key) {
-        if (key == null) return 0;
-        return Math.abs(key.hashCode()) % capacity;
-    }
-    
-    // Rehashing
-    private void rehash() {
-        Entry<K, V>[] oldTable = table;
-        capacity *= 2;  // Double capacity
-        table = new Entry[capacity];
-        size = 0;
+    def remove(self, key):
+        """
+        Remove a key-value pair
+        Args:
+            key: Key to remove
+        Returns:
+            Value if found and removed, None otherwise
+        """
+        index = self._hash(key)
         
-        // Reinsert all entries
-        for (Entry<K, V> entry : oldTable) {
-            while (entry != null) {
-                put(entry.key, entry.value);
-                entry = entry.next;
-            }
-        }
-    }
-    
-    // Entry node for linked list
-    private static class Entry<K, V> {
-        K key;
-        V value;
-        Entry<K, V> next;
+        entry = self.table[index]
+        prev = None
         
-        Entry(K key, V value, Entry<K, V> next) {
-            this.key = key;
-            this.value = value;
-            this.next = next;
-        }
-    }
-}
+        # Traverse linked list at this index
+        while entry is not None:
+            if entry.key == key:
+                # Found the key - remove it
+                if prev is None:
+                    # Remove from head
+                    self.table[index] = entry.next
+                else:
+                    # Remove from middle/end
+                    prev.next = entry.next
+                self.size -= 1
+                return entry.value
+            prev = entry
+            entry = entry.next
+        
+        return None  # Key not found
+    
+    def _rehash(self):
+        """
+        Rehash: double capacity and reinsert all entries
+        This maintains O(1) average-case performance
+        """
+        # Store old table and data
+        old_table = self.table
+        old_size = self.size
+        
+        # Create new table with doubled capacity
+        self.capacity *= 2
+        self.table = [None] * self.capacity
+        self.size = 0
+        
+        # Reinsert all entries into new table
+        for entry in old_table:
+            while entry is not None:
+                self.put(entry.key, entry.value)
+                entry = entry.next
+    
+    def __contains__(self, key):
+        """Check if key exists (enables 'key in map' syntax)"""
+        return self.get(key) is not None
+    
+    def __len__(self):
+        """Return number of entries"""
+        return self.size
+    
+    def __str__(self):
+        """String representation"""
+        items = []
+        for entry in self.table:
+            while entry is not None:
+                items.append(f"{entry.key}: {entry.value}")
+                entry = entry.next
+        return "{" + ", ".join(items) + "}"
+
+
+# Usage Example:
+if __name__ == "__main__":
+    # Create HashMap
+    my_map = HashMap(capacity=10)
+    
+    # Put operations
+    my_map.put("apple", 5)
+    my_map.put("banana", 3)
+    my_map.put("cherry", 7)
+    
+    # Get operations
+    print(my_map.get("apple"))   # Output: 5
+    print(my_map.get("banana"))  # Output: 3
+    print(my_map.get("grape"))   # Output: None
+    
+    # Contains check
+    print("apple" in my_map)      # Output: True
+    print("grape" in my_map)      # Output: False
+    
+    # Remove operations
+    my_map.remove("banana")
+    print(my_map.get("banana"))   # Output: None
+    
+    # Size and representation
+    print(f"Size: {len(my_map)}")
+    print(f"HashMap: {my_map}")
 ```
 
 ---
 
 ## Best Practices
 
-### 1. **Hash Code Implementation**
-```java
-// Bad: Always returns same value (terrible collisions)
-@Override
-public int hashCode() {
-    return 42;
-}
+### 1. **Hash Function Implementation (Python)**
+```python
+# Bad: Always returns same value (terrible collisions)
+def __hash__(self):
+    return 42  # All keys hash to same value!
 
-// Good: Distributes values well
-@Override
-public int hashCode() {
-    return Objects.hash(name, age, email);
-}
+# Good: Distributes values well using built-in hash()
+class Person:
+    def __init__(self, name, age, email):
+        self.name = name
+        self.age = age
+        self.email = email
+    
+    def __hash__(self):
+        # Use Python's built-in hash on immutable components
+        return hash((self.name, self.age, self.email))
+    
+    def __eq__(self, other):
+        if not isinstance(other, Person):
+            return False
+        return (self.name == other.name and 
+                self.age == other.age and 
+                self.email == other.email)
 ```
 
-### 2. **Equals Method**
-```java
-// Must be consistent with hashCode
-@Override
-public boolean equals(Object o) {
-    if (this == o) return true;
-    if (!(o instanceof Person)) return false;
-    Person person = (Person) o;
-    return age == person.age && 
-           Objects.equals(name, person.name) &&
-           Objects.equals(email, person.email);
-}
+### 2. **Equals Method (Python)**
+```python
+# Must be consistent with __hash__
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+    def __eq__(self, other):
+        if not isinstance(other, Person):
+            return False
+        return self.name == other.name and self.age == other.age
+    
+    def __hash__(self):
+        # Two equal objects must have same hash
+        return hash((self.name, self.age))
 ```
 
 ### 3. **Immutable Keys**
-- Use immutable objects as keys (String, Integer, etc.)
+- Use immutable objects as keys (string, int, tuple, frozenset, etc.)
 - If key is mutable and modified after insertion, HashMap breaks
-```java
-// Good
-HashMap<String, Integer> map = new HashMap<>();
+```python
+# Good
+my_map = {}
+my_map["apple"] = 5
+my_map[42] = "answer"
+my_map[(1, 2)] = "tuple key"
 
-// Bad - DON'T DO THIS
-StringBuilder key = new StringBuilder("apple");
-map.put(key, 5);
-key.append("pie");  // Modifying key! Hash changes!
-map.get("apple");   // Doesn't find it!
+# Bad - DON'T DO THIS
+key = ["apple"]  # Lists are mutable
+my_map[key] = 5  # TypeError: unhashable type: 'list'
+
+# Also bad - Modify after insertion
+key = {"a": 1}  # Dictionaries are mutable
+my_map[key] = 5  # TypeError: unhashable type: 'dict'
 ```
 
-### 4. **Handle Null Keys**
-- Java HashMap allows one null key
-- Decide on your null-handling strategy upfront
-
-### 5. **Performance Tuning**
-```java
-// Specify initial capacity to avoid multiple rehashes
-HashMap<String, Integer> map = new HashMap<>(1000);  // Better than default
-
-// Instead of adding 1000 elements one by one (causes multiple rehashes)
+### 4. **Handle Null Keys (Python)**
+- Python allows None as a key
+- Be explicit about None handling in your implementation
+```python
+my_map = {}
+my_map[None] = "null value"
+print(my_map[None])  # Output: null value
+print(None in my_map)  # Output: True
 ```
 
-### 6. **Iteration Order**
-- HashMap iteration order is not guaranteed
-- Use LinkedHashMap if insertion order matters
-- Use TreeMap if sorted order matters
+### 5. **Performance Tuning (Python)**
+```python
+# Bad: Multiple rehashes occur
+my_map = {}
+for i in range(1000):
+    my_map[i] = i  # Rehashing happens multiple times
 
-### 7. **Thread Safety**
-- HashMap is NOT thread-safe
-- Use ConcurrentHashMap for multi-threaded access
-- Or synchronize externally
+# Better: Dict grows automatically, Python handles it efficiently
+# But for custom HashMap, specify initial capacity:
+my_map = HashMap(capacity=2000)  # Avoid multiple rehashes
+for i in range(1000):
+    my_map.put(i, i)
+```
+
+### 6. **Iteration Order (Python)**
+- Python 3.7+: dict maintains insertion order
+- custom HashMap: order depends on your implementation
+- If insertion order matters, use a list or OrderedDict pattern
+```python
+# Python's built-in dict (ordered since 3.7)
+my_map = {}
+my_map["apple"] = 1
+my_map["banana"] = 2
+for key in my_map:  # Insertion order preserved
+    print(key)
+
+# Collections.OrderedDict for explicit ordering
+from collections import OrderedDict
+ordered_map = OrderedDict()
+ordered_map["apple"] = 1
+ordered_map["banana"] = 2
+```
+
+### 7. **Thread Safety (Python)**
+- Python dicts are NOT thread-safe
+- Use `threading.Lock` for multi-threaded access
+- Or use `queue.Queue` for thread-safe operations
+```python
+import threading
+
+class ThreadSafeHashMap:
+    def __init__(self):
+        self.map = {}
+        self.lock = threading.Lock()
+    
+    def put(self, key, value):
+        with self.lock:
+            self.map[key] = value
+    
+    def get(self, key):
+        with self.lock:
+            return self.map.get(key)
+```
 
 ---
 
@@ -668,14 +806,40 @@ HashMap<String, Integer> map = new HashMap<>(1000);  // Better than default
 
 ## Real-World Applications
 
-1. **Caching**: Cache<URL, WebPage>
-2. **Frequency Count**: Count<String, Integer>
-3. **LRU Cache**: LinkedHashMap-based with eviction
+1. **Caching**: 
+   ```python
+   cache = {}  # URL → WebPage
+   ```
+
+2. **Frequency Count**: 
+   ```python
+   word_count = {}  # String → Integer
+   ```
+
+3. **LRU Cache**: 
+   ```python
+   from collections import OrderedDict
+   lru_cache = OrderedDict()
+   ```
+
 4. **Symbol Tables**: Compiler/Interpreter variable storage
-5. **Duplicate Detection**: First occurrence finding
-6. **Grouping**: Group students by grade
+
+5. **Duplicate Detection**: 
+   ```python
+   seen = set()  # or use dict
+   ```
+
+6. **Grouping**: 
+   ```python
+   students_by_grade = {}  # Grade → [Students]
+   ```
+
 7. **Indexing**: Database index structures
-8. **Autocomplete**: Prefix → List of suggestions
+
+8. **Autocomplete**: 
+   ```python
+   suggestions = {}  # Prefix → [Suggestions]
+   ```
 
 ---
 
