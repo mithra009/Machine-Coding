@@ -13,6 +13,16 @@ Implementations and solutions related to HashMap/Hash Table data structures.
 - `hashmap.py` - HashMap implementation
 - `hashmap.md` - Documentation and problem descriptions
 
+### RateLimiter
+Implementations and solutions related to rate limiting algorithms and CLI usage.
+- `RateLimiter.md` - Detailed design and algorithm documentation
+- `RateLimiter.py` - Abstract base rate limiter contract
+- `FixedWindowRateLimiter.py` - Fixed window limiter implementation
+- `RateLimiterService.py` - User and limiter mapping service
+- `User.py` - User model and UID generation
+- `UserTier.py` - Tier model with request limits
+- `main.py` - CLI application
+
 ## Getting Started
 
 ### Prerequisites
@@ -25,6 +35,8 @@ Navigate to the respective folder and review the implementation files and docume
 
 - **Data Structures**
   - HashMap/Hash Table
+- **Web Tools**
+  - RateLimiter
   
 ## License
 
